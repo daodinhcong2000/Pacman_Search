@@ -1,2 +1,2 @@
 # pacman_Search
-Bài tập cho môn AI
+Bài tập cho môn AI.
