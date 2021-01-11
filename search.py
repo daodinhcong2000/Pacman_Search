@@ -73,93 +73,110 @@ def tinyMazeSearch(problem):
     return  [s, s, w, s, w, w, s, w]
 
 def depthFirstSearch(problem):
-    """
-    Search the deepest nodes in the search tree first.
+    from util import Stack
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
+    stackXY = Stack()
 
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
+    visited = []
+    path = []
 
-    print "Start:", problem.getStartState()
-    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-    print "Start's successors:", problem.getSuccessors(problem.getStartState())
-    """
-    "*** YOUR CODE HERE ***"
-    startingNode = problem.getStartState()
-    if problem.isGoalState(startingNode):
+    if problem.isGoalState(problem.getStartState()):
         return []
 
-    myQueue = util.Stack()
-    visitedNodes = []
-    # (node,actions)
-    myQueue.push((startingNode, []))
+    stackXY.push((problem.getStartState(),[]))
 
-    while not myQueue.isEmpty():
-        currentNode, actions = myQueue.pop()
-        if currentNode not in visitedNodes:
-            visitedNodes.append(currentNode)
+    while(True):
+        if stackXY.isEmpty():
+            return []
 
-            if problem.isGoalState(currentNode):
-                return actions
+        xy,path = stackXY.pop() 
+        visited.append(xy)
+        if problem.isGoalState(xy):
+            return path
 
-            for nextNode, action, cost in problem.getSuccessors(currentNode):
-                newAction = actions + [action]
-                myQueue.push((nextNode, newAction))
-   
+        successors = problem.getSuccessors(xy)
+
+        if successors:
+            for item in successors:
+                if item[0] not in visited:
+                    newPath = path + [item[1]]
+                    stackXY.push((item[0],newPath))
+
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    startingNode = problem.getStartState()
-    if problem.isGoalState(startingNode):
+    from util import Queue
+
+    queueXY = Queue()
+
+    visited = []
+    path = [] 
+
+    if problem.isGoalState(problem.getStartState()):
         return []
 
-    myQueue = util.Queue()
-    visitedNodes = []
-    # (node,actions)
-    myQueue.push((startingNode, []))
+    queueXY.push((problem.getStartState(),[]))
 
-    while not myQueue.isEmpty():
-        currentNode, actions = myQueue.pop()
-        if currentNode not in visitedNodes:
-            visitedNodes.append(currentNode)
+    while(True):
 
-            if problem.isGoalState(currentNode):
-                return actions
+        if queueXY.isEmpty():
+            return []
 
-            for nextNode, action, cost in problem.getSuccessors(currentNode):
-                newAction = actions + [action]
-                myQueue.push((nextNode, newAction))
-    util.raiseNotDefined()
+        xy,path = queueXY.pop()
+        visited.append(xy)
+
+        if problem.isGoalState(xy):
+            return path
+
+        successors = problem.getSuccessors(xy)
+
+        if successors:
+            for item in successors:
+                if item[0] not in visited and item[0] not in (state[0] for state in queueXY.list):
+                    newPath = path + [item[1]]
+                    queueXY.push((item[0],newPath))
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    startingNode = problem.getStartState()
-    if problem.isGoalState(startingNode):
+
+    from util import PriorityQueue
+
+    queueXY = PriorityQueue()
+
+    visited = []
+    path = []
+
+    if problem.isGoalState(problem.getStartState()):
         return []
+    queueXY.push((problem.getStartState(),[]),0)
 
-    visitedNodes = []
+    while(True):
+        if queueXY.isEmpty():
+            return []
+        xy,path = queueXY.pop()
+        visited.append(xy)
+        if problem.isGoalState(xy):
+            return path
+        successors = problem.getSuccessors(xy)
+        if successors:
+            for item in successors:
+                if item[0] not in visited and (item[0] not in (state[2][0] for state in queueXY.heap)):
+                    newPath = path + [item[1]]
+                    pri = problem.getCostOfActions(newPath)
 
-    pQueue = util.PriorityQueue()
-    #((coordinate/node , action to current node , cost to current node),priority)
-    pQueue.push((startingNode, [], 0), 0)
+                    queueXY.push((item[0],newPath),pri)
 
-    while not pQueue.isEmpty():
+                elif item[0] not in visited and (item[0] in (state[2][0] for state in queueXY.heap)):
+                    for state in queueXY.heap:
+                        if state[2][0] == item[0]:
+                            oldPri = problem.getCostOfActions(state[2][1])
 
-        currentNode, actions, prevCost = pQueue.pop()
-        if currentNode not in visitedNodes:
-            visitedNodes.append(currentNode)
+                    newPri = problem.getCostOfActions(path + [item[1]])
 
-            if problem.isGoalState(currentNode):
-                return actions
-
-            for nextNode, action, cost in problem.getSuccessors(currentNode):
-                newAction = actions + [action]
-                priority = prevCost + cost
-                pQueue.push((nextNode, newAction, priority),priority)
-    util.raiseNotDefined()
+                    if oldPri > newPri:
+                        newPath = path + [item[1]]
+                        queueXY.update((item[0],newPath),newPri)
 
 def nullHeuristic(state, problem=None):
     """
@@ -168,37 +185,55 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+from util import PriorityQueue
+class MyPriorityQueueWithFunction(PriorityQueue):
+    def  __init__(self, problem, priorityFunction):
+        self.priorityFunction = priorityFunction
+        PriorityQueue.__init__(self)
+        self.problem = problem
+    def push(self, item, heuristic):
+        PriorityQueue.push(self, item, self.priorityFunction(self.problem,item,heuristic))
+
+def f(problem,state,heuristic):
+
+    return problem.getCostOfActions(state[1]) + heuristic(state[0],problem)
+
 def aStarSearch(problem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    startingNode = problem.getStartState()
-    if problem.isGoalState(startingNode):
+    queueXY = MyPriorityQueueWithFunction(problem,f)
+
+    path = []
+    visited = []
+
+    if problem.isGoalState(problem.getStartState()):
         return []
 
-    visitedNodes = []
+    element = (problem.getStartState(),[])
 
-    pQueue = util.PriorityQueue()
-    #((coordinate/node , action to current node , cost to current node),priority)
-    pQueue.push((startingNode, [], 0), 0)
+    queueXY.push(element,heuristic)
 
-    while not pQueue.isEmpty():
+    while(True):
+        if queueXY.isEmpty():
+            return []
 
-        currentNode, actions, prevCost = pQueue.pop()
+        xy,path = queueXY.pop()
 
-        if currentNode not in visitedNodes:
-            visitedNodes.append(currentNode)
+        if xy in visited:
+            continue
 
-            if problem.isGoalState(currentNode):
-                return actions
+        visited.append(xy)
 
-            for nextNode, action, cost in problem.getSuccessors(currentNode):
-                newAction = actions + [action]
-                newCostToNode = prevCost + cost
-                heuristicCost = newCostToNode + heuristic(nextNode,problem)
-                pQueue.push((nextNode, newAction, newCostToNode),heuristicCost)
+        if problem.isGoalState(xy):
+            return path
 
-    util.raiseNotDefined()
+        successors = problem.getSuccessors(xy)
 
+        if successors:
+            for item in successors:
+                if item[0] not in visited:
+                    newPath = path + [item[1]]
+                    element = (item[0],newPath)
+                    queueXY.push(element,heuristic)
 
 
 # Abbreviations
